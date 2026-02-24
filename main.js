@@ -1,9 +1,10 @@
 import './style.css';
 
-import { subscribe, state, getSelectedTheme } from './src/core/state.js';
-import { initMap, updateMapTheme, invalidateMapSize, waitForTilesLoad, waitForArtisticIdle, updateMarkerStyles, updateRouteStyles } from './src/map/map-init.js';
+import { subscribe, state, getSelectedTheme, getSelectedArtisticTheme } from './src/core/state.js';
+import { initMap, updateMapTheme, invalidateMapSize, waitForTilesLoad, waitForArtisticIdle, updateMarkerStyles, updateRouteStyles, updateArtisticStyle } from './src/map/map-init.js';
 import { setupControls, updatePreviewStyles } from './src/ui/form.js';
 import { exportToPNG } from './src/core/export.js';
+import { exportToSVG } from './src/core/export-svg.js';
 
 const initialTheme = getSelectedTheme();
 initMap('map-preview', [state.lat, state.lon], state.zoom, initialTheme.tileUrl);
@@ -60,6 +61,9 @@ subscribe((currentState) => {
 		const theme = getSelectedTheme();
 		const tileUrl = currentState.showLabels ? theme.tileUrl : theme.tileUrlNoLabels;
 		updateMapTheme(tileUrl);
+	} else if (currentState.renderMode === 'artistic') {
+		const theme = getSelectedArtisticTheme();
+		updateArtisticStyle(theme);
 	}
 
 	updatePreviewStyles(currentState);
@@ -124,6 +128,19 @@ exportBtn.addEventListener('click', async () => {
 		setExportButtonLoading(false);
 	}
 });
+
+const exportSvgBtn = document.getElementById('export-svg-btn');
+if (exportSvgBtn) {
+	exportSvgBtn.addEventListener('click', async () => {
+		const filename = `MapToPoster-${state.city.replace(/\s+/g, '-')}-${Date.now()}.svg`;
+		setExportButtonLoading(true, 'processing');
+		try {
+			await exportToSVG(posterContainer, filename, null);
+		} finally {
+			setExportButtonLoading(false);
+		}
+	});
+}
 
 ensurePreviewReady();
 

@@ -585,6 +585,19 @@ export function setupControls() {
 		});
 	}
 
+	const streetNamesToggle = document.getElementById('street-names-toggle');
+	const streetNamesControl = document.getElementById('street-names-control');
+
+	if (streetNamesToggle) {
+		streetNamesToggle.addEventListener('change', (e) => {
+			updateState({ showStreetNames: e.target.checked });
+			if (state.renderMode === 'artistic') {
+				const theme = getSelectedArtisticTheme();
+				updateArtisticStyle(theme);
+			}
+		});
+	}
+
 	if (markerToggle) {
 		markerToggle.addEventListener('change', (e) => {
 			const show = e.target.checked;
@@ -663,6 +676,83 @@ export function setupControls() {
 			updateState({ routeViaPoints: [] });
 			await updateRouteGeometry();
 			updateRouteStyles(state);
+		});
+	}
+
+	const routeStartLat = document.getElementById('route-start-lat');
+	const routeStartLon = document.getElementById('route-start-lon');
+	const routeEndLat = document.getElementById('route-end-lat');
+	const routeEndLon = document.getElementById('route-end-lon');
+
+	const updateRouteFromInputs = async () => {
+		const startLat = parseFloat(routeStartLat?.value);
+		const startLon = parseFloat(routeStartLon?.value);
+		const endLat = parseFloat(routeEndLat?.value);
+		const endLon = parseFloat(routeEndLon?.value);
+
+		const updates = {};
+		if (!isNaN(startLat)) updates.routeStartLat = startLat;
+		if (!isNaN(startLon)) updates.routeStartLon = startLon;
+		if (!isNaN(endLat)) updates.routeEndLat = endLat;
+		if (!isNaN(endLon)) updates.routeEndLon = endLon;
+
+		if (Object.keys(updates).length > 0) {
+			updateState(updates);
+			await updateRouteGeometry();
+			updateRouteStyles({ ...state, ...updates });
+		}
+	};
+
+	if (routeStartLat) routeStartLat.addEventListener('change', updateRouteFromInputs);
+	if (routeStartLon) routeStartLon.addEventListener('change', updateRouteFromInputs);
+	if (routeEndLat) routeEndLat.addEventListener('change', updateRouteFromInputs);
+	if (routeEndLon) routeEndLon.addEventListener('change', updateRouteFromInputs);
+
+	const routeWaypointIcon = document.getElementById('route-waypoint-icon');
+	const routeWaypointSize = document.getElementById('route-waypoint-size');
+	const routeWaypointSizeValue = document.getElementById('route-waypoint-size-value');
+
+	if (routeWaypointIcon) {
+		routeWaypointIcon.addEventListener('change', (e) => {
+			const newVal = e.target.value;
+			updateState({ routeWaypointIcon: newVal });
+			const newState = { ...state, routeWaypointIcon: newVal };
+			window.__routeForceRecreate = true;
+			updateRouteStyles(newState);
+		});
+	}
+
+	if (routeWaypointSize) {
+		routeWaypointSize.addEventListener('input', (e) => {
+			const size = parseInt(e.target.value);
+			const newState = { ...state, routeWaypointSize: size / 36.0 };
+			updateState({ routeWaypointSize: size / 36.0 });
+			if (routeWaypointSizeValue) routeWaypointSizeValue.textContent = `${size}px`;
+			window.__routeForceRecreate = true;
+			updateRouteStyles(newState);
+		});
+	}
+
+	const routeStartEndIcon = document.getElementById('route-start-end-icon');
+	const routeStartEndSize = document.getElementById('route-start-end-size');
+	const routeStartEndSizeValue = document.getElementById('route-start-end-size-value');
+
+	if (routeStartEndIcon) {
+		routeStartEndIcon.addEventListener('change', (e) => {
+			updateState({ routeStartEndIcon: e.target.value });
+			window.__routeForceRecreate = true;
+			updateRouteStyles({ ...state, routeStartEndIcon: e.target.value });
+		});
+	}
+
+	if (routeStartEndSize) {
+		routeStartEndSize.addEventListener('input', (e) => {
+			const size = parseInt(e.target.value);
+			const newState = { ...state, routeStartEndSize: size / 36.0 };
+			updateState({ routeStartEndSize: size / 36.0 });
+			if (routeStartEndSizeValue) routeStartEndSizeValue.textContent = `${size}px`;
+			window.__routeForceRecreate = true;
+			updateRouteStyles(newState);
 		});
 	}
 
@@ -854,12 +944,14 @@ export function setupControls() {
 			if (standardThemeConfig) standardThemeConfig.classList.remove('hidden');
 			if (artisticThemeConfig) artisticThemeConfig.classList.add('hidden');
 			if (labelsControl) labelsControl.classList.remove('hidden');
+			if (streetNamesControl) streetNamesControl.classList.add('hidden');
 		} else {
 			modeTile.className = 'flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-900';
 			modeArtistic.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-accent text-white shadow-sm';
 			if (standardThemeConfig) standardThemeConfig.classList.add('hidden');
 			if (artisticThemeConfig) artisticThemeConfig.classList.remove('hidden');
 			if (labelsControl) labelsControl.classList.add('hidden');
+			if (streetNamesControl) streetNamesControl.classList.remove('hidden');
 		}
 
 		themeSelect.value = currentState.theme;
@@ -894,6 +986,8 @@ export function setupControls() {
 		artisticDesc.textContent = artisticTheme.description;
 
 		if (labelsToggle) labelsToggle.checked = !!currentState.showLabels;
+		if (streetNamesToggle) streetNamesToggle.checked = !!currentState.showStreetNames;
+
 		if (markerToggle) {
 			markerToggle.checked = !!currentState.showMarker;
 			const settings = document.getElementById('marker-settings');
@@ -922,6 +1016,35 @@ export function setupControls() {
 		if (routeCountDisplay) {
 			const viaPoints = (currentState.routeViaPoints || []).length;
 			routeCountDisplay.textContent = 2 + viaPoints;
+		}
+
+		const routeStartLat = document.getElementById('route-start-lat');
+		const routeStartLon = document.getElementById('route-start-lon');
+		const routeEndLat = document.getElementById('route-end-lat');
+		const routeEndLon = document.getElementById('route-end-lon');
+		if (routeStartLat) routeStartLat.value = currentState.routeStartLat?.toFixed(6) || '';
+		if (routeStartLon) routeStartLon.value = currentState.routeStartLon?.toFixed(6) || '';
+		if (routeEndLat) routeEndLat.value = currentState.routeEndLat?.toFixed(6) || '';
+		if (routeEndLon) routeEndLon.value = currentState.routeEndLon?.toFixed(6) || '';
+
+		const routeWaypointIcon = document.getElementById('route-waypoint-icon');
+		const routeWaypointSize = document.getElementById('route-waypoint-size');
+		const routeWaypointSizeValue = document.getElementById('route-waypoint-size-value');
+		if (routeWaypointIcon) routeWaypointIcon.value = currentState.routeWaypointIcon || 'circle';
+		if (routeWaypointSize) {
+			const sizePx = Math.round((currentState.routeWaypointSize || 1) * 36);
+			routeWaypointSize.value = sizePx;
+			if (routeWaypointSizeValue) routeWaypointSizeValue.textContent = `${sizePx}px`;
+		}
+
+		const routeStartEndIcon = document.getElementById('route-start-end-icon');
+		const routeStartEndSize = document.getElementById('route-start-end-size');
+		const routeStartEndSizeValue = document.getElementById('route-start-end-size-value');
+		if (routeStartEndIcon) routeStartEndIcon.value = currentState.routeStartEndIcon || 'pin';
+		if (routeStartEndSize) {
+			const sizePx = Math.round((currentState.routeStartEndSize || 1) * 36);
+			routeStartEndSize.value = sizePx;
+			if (routeStartEndSizeValue) routeStartEndSizeValue.textContent = `${sizePx}px`;
 		}
 
 		if (overlayBgButtons && overlayBgButtons.length) {

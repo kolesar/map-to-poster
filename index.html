@@ -199,6 +199,56 @@
 								<button id="reset-route-btn" class="text-[9px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-tight">Reset All</button>
 							</div>
 						</div>
+						<div class="space-y-2">
+							<span class="label-sm">Point A (Start)</span>
+							<div class="grid grid-cols-2 gap-2">
+								<input type="text" id="route-start-lat" placeholder="Lat" class="input-field text-xs py-1.5">
+								<input type="text" id="route-start-lon" placeholder="Lon" class="input-field text-xs py-1.5">
+							</div>
+						</div>
+						<div class="space-y-2">
+							<span class="label-sm">Point B (End)</span>
+							<div class="grid grid-cols-2 gap-2">
+								<input type="text" id="route-end-lat" placeholder="Lat" class="input-field text-xs py-1.5">
+								<input type="text" id="route-end-lon" placeholder="Lon" class="input-field text-xs py-1.5">
+							</div>
+						</div>
+						<div class="grid grid-cols-2 gap-3">
+							<div>
+								<span class="label-sm">Waypoint Icon</span>
+								<select id="route-waypoint-icon" class="input-field text-xs py-1.5 mt-1">
+									<option value="circle">Circle</option>
+									<option value="pin">Pin</option>
+									<option value="square">Square</option>
+									<option value="diamond">Diamond</option>
+								</select>
+							</div>
+							<div>
+								<span class="label-sm">Waypoint Size</span>
+								<div class="flex items-center space-x-2 mt-1">
+									<input type="range" id="route-waypoint-size" min="20" max="60" value="36" class="flex-1 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-accent">
+									<span id="route-waypoint-size-value" class="text-xs font-bold text-accent w-8 text-right">36px</span>
+								</div>
+							</div>
+						</div>
+						<div class="grid grid-cols-2 gap-3">
+							<div>
+								<span class="label-sm">A/B Icon</span>
+								<select id="route-start-end-icon" class="input-field text-xs py-1.5 mt-1">
+									<option value="pin">Pin</option>
+									<option value="circle">Circle</option>
+									<option value="square">Square</option>
+									<option value="diamond">Diamond</option>
+								</select>
+							</div>
+							<div>
+								<span class="label-sm">A/B Size</span>
+								<div class="flex items-center space-x-2 mt-1">
+									<input type="range" id="route-start-end-size" min="20" max="60" value="36" class="flex-1 h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-accent">
+									<span id="route-start-end-size-value" class="text-xs font-bold text-accent w-8 text-right">36px</span>
+								</div>
+							</div>
+						</div>
 						<p class="text-[9px] text-slate-400 italic text-center">Tip: Drag the markers on the map to set the route. Click on the line to add a custom bend. Double click a point to remove it.</p>
 					</div>
 				</div>
@@ -244,6 +294,18 @@
 							</div>
 						</div>
 						<p id="artistic-desc" class="text-[10px] text-slate-400 italic px-1"></p>
+						<div id="street-names-control" class="hidden">
+							<div class="flex items-center justify-between">
+								<span class="label-sm mb-0">Street Names</span>
+								<label class="relative inline-flex items-center cursor-pointer">
+									<input type="checkbox" id="street-names-toggle" class="sr-only peer">
+									<div class="toggle-pill"></div>
+								</label>
+							</div>
+							<p class="text-[9px] text-slate-400 mt-1">
+								Shows street labels at zoom ≥14. Best for small areas.
+							</p>
+						</div>
 					</div>
 				</div>
 			</div>
@@ -496,17 +558,23 @@
 						</svg>
 						<span>Reset to Defaults</span>
 					</button>
+
 				</div>
 			</div>
 		</div>
 
 		<div class="p-8 border-t border-slate-100 bg-slate-50/50 backdrop-blur-sm">
-			<button id="export-btn" class="w-full bg-slate-900 group-hover:bg-accent hover:bg-accent text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-slate-200 transition-all duration-300 flex items-center justify-center space-x-3 group active:scale-[0.98]">
-				<svg class="w-5 h-5 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-				</svg>
-				<span>Generate Export</span>
-			</button>
+			<div class="flex gap-2">
+				<button id="export-btn" class="flex-1 bg-slate-900 group-hover:bg-accent hover:bg-accent text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-slate-200 transition-all duration-300 flex items-center justify-center space-x-3 group active:scale-[0.98]">
+					<svg class="w-5 h-5 group-hover:translate-y-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+					</svg>
+					<span>Generate Export</span>
+				</button>
+				<button id="export-svg-btn" class="py-3 px-4 bg-slate-700 text-white rounded-xl text-xs font-bold hover:bg-slate-600 transition-all" title="Export as SVG (vector)">
+					SVG
+				</button>
+			</div>
 			<div id="export-status" class="mt-4 flex items-center justify-center space-x-2 hidden">
 				<div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style="animation-delay: 0s"></div>
 				<div class="w-1.5 h-1.5 bg-white rounded-full animate-bounce" style="animation-delay: 0.1s"></div>

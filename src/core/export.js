@@ -13,7 +13,7 @@ function project(lat, lon, scale) {
 	};
 }
 
-async function captureMapSnapshot() {
+export async function captureMapSnapshot() {
 	const artisticContainer = document.getElementById('artistic-map');
 	const mapPreviewContainer = document.getElementById('map-preview');
 	const posterContainer = document.getElementById('poster-container');

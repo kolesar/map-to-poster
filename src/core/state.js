@@ -43,10 +43,15 @@ export const defaultState = {
 	routeEndLon: 106.8550,
 	routeGeometry: [],
 	routeViaPoints: [],
+	routeWaypointIcon: 'circle',
+	routeWaypointSize: 1,
+	routeStartEndIcon: 'pin',
+	routeStartEndSize: 1,
 	overlayX: 0.5,
 	overlayY: 0.85,
 	showCountry: true,
 	showCoords: true,
+	showStreetNames: true,
 };
 
 export const state = { ...defaultState };
@@ -79,6 +84,10 @@ const SAVED_KEYS = [
 	'markers',
 	'markerIcon',
 	'markerSize',
+	'routeWaypointIcon',
+	'routeWaypointSize',
+	'routeStartEndIcon',
+	'routeStartEndSize',
 	'showRoute',
 	'routeStartLat',
 	'routeStartLon',
@@ -88,7 +97,8 @@ const SAVED_KEYS = [
 	'overlayX',
 	'overlayY',
 	'showCountry',
-	'showCoords'
+	'showCoords',
+	'showStreetNames'
 ];
 
 function loadSettings() {

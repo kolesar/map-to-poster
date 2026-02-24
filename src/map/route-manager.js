@@ -14,7 +14,11 @@ let viaMarkers = [];
 let artisticViaMarkers = [];
 let artisticRouteStartMarker = null;
 let artisticRouteEndMarker = null;
-let isSyncing = false;
+	let isSyncing = false;
+let lastWaypointIcon = null;
+let lastWaypointSize = null;
+let lastStartEndIcon = null;
+let lastStartEndSize = null;
 
 export async function updateRouteGeometry() {
 	const points = [
@@ -57,18 +61,44 @@ export function updateRouteStyles(state) {
 		const start = [state.routeStartLat, state.routeStartLon];
 		const end = [state.routeEndLat, state.routeEndLon];
 
-		const routeMarkerHtml = (label) => `
-			<div class="w-6 h-6 bg-white border-2 border-slate-900 rounded-full shadow-lg flex items-center justify-center text-[10px] font-black text-slate-900 ring-2 ring-white/50">${label}</div>
-		`;
+		const startEndSize = (state.routeStartEndSize || 1) * 36;
+		const startEndIcon = state.routeStartEndIcon || 'pin';
 
-		if (!routeStartMarker) {
+		const getStartEndMarkerHtml = (label) => {
+			const size = `${startEndSize}px`;
+
+			if (startEndIcon === 'pin') {
+				return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="z-index:9999;">
+					<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="white" stroke="#333" stroke-width="1.5"/>
+					<text x="12" y="13" text-anchor="middle" font-size="10" font-weight="bold" fill="#333">${label}</text>
+				</svg>`;
+			} else if (startEndIcon === 'square') {
+				return `<div style="width:${size};height:${size};background:white;border:2px solid #333;box-shadow:0 2px 4px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;z-index:9999;"><span style="font-size:10px;font-weight:bold;color:#333">${label}</span></div>`;
+			} else if (startEndIcon === 'diamond') {
+				return `<div style="width:${size};height:${size};background:white;border:2px solid #333;transform:rotate(45deg);box-shadow:0 2px 4px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;z-index:9999;"><span style="font-size:10px;font-weight:bold;color:#333;transform:rotate(-45deg)">${label}</span></div>`;
+			} else {
+				return `<div style="width:${size};height:${size};background:white;border:2px solid #333;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;z-index:9999;"><span style="font-size:10px;font-weight:bold;color:#333">${label}</span></div>`;
+			}
+		};
+
+		const shouldRecreateStartEnd = window.__routeForceRecreate || lastStartEndIcon !== startEndIcon || lastStartEndSize !== startEndSize;
+		if (shouldRecreateStartEnd) {
+			window.__routeForceRecreate = false;
+		}
+
+		if (!routeStartMarker || shouldRecreateStartEnd) {
+			if (routeStartMarker) routeStartMarker.remove();
+			lastStartEndIcon = startEndIcon;
+			lastStartEndSize = startEndSize;
+
 			routeStartMarker = L.marker(start, {
 				draggable: true,
+				bubblingMouseEvents: true,
 				icon: L.divIcon({
 					className: 'route-marker-a',
-					html: routeMarkerHtml('A'),
-					iconSize: [24, 24],
-					iconAnchor: [12, 12]
+					html: getStartEndMarkerHtml('A'),
+					iconSize: [startEndSize, startEndSize],
+					iconAnchor: [startEndSize / 2, startEndSize / 2]
 				})
 			}).addTo(map);
 			routeStartMarker.on('drag', () => {
@@ -81,17 +111,19 @@ export function updateRouteStyles(state) {
 			});
 			routeStartMarker.on('dragend', updateRouteGeometry);
 		} else {
-			if (!isSyncing) routeStartMarker.setLatLng(start).addTo(map);
+			routeStartMarker.setLatLng(start);
 		}
 
-		if (!routeEndMarker) {
+		if (!routeEndMarker || shouldRecreateStartEnd) {
+			if (routeEndMarker) routeEndMarker.remove();
+
 			routeEndMarker = L.marker(end, {
 				draggable: true,
 				icon: L.divIcon({
 					className: 'route-marker-b',
-					html: routeMarkerHtml('B'),
-					iconSize: [24, 24],
-					iconAnchor: [12, 12]
+					html: getStartEndMarkerHtml('B'),
+					iconSize: [startEndSize, startEndSize],
+					iconAnchor: [startEndSize / 2, startEndSize / 2]
 				})
 			}).addTo(map);
 			routeEndMarker.on('drag', () => {
@@ -242,17 +274,44 @@ export function updateRouteStyles(state) {
 			isSyncing = false;
 		};
 
-		if (viaMarkers.length !== currentViaData.length) {
+		const currentIcon = state.routeWaypointIcon || 'circle';
+		const currentSize = state.routeWaypointSize || 1;
+
+		if (viaMarkers.length !== currentViaData.length || window.__routeForceRecreate || lastWaypointIcon !== currentIcon || lastWaypointSize !== currentSize) {
 			viaMarkers.forEach(m => m.remove());
 			viaMarkers = [];
+			lastWaypointIcon = currentIcon;
+			lastWaypointSize = currentSize;
+
+			const waypointSize = (state.routeWaypointSize || 1) * 36;
+			const iconType = state.routeWaypointIcon || 'circle';
+
+			const getWaypointHtml = () => {
+				const size = `${waypointSize}px`;
+				const half = `${waypointSize / 2}px`;
+
+				if (iconType === 'pin') {
+					return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="white" stroke="#333" stroke-width="1.5"/>
+						<circle cx="12" cy="9" r="3" fill="#333"/>
+					</svg>`;
+				} else if (iconType === 'square') {
+					return `<div style="width:${size};height:${size};background:white;border:2px solid #333;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>`;
+				} else if (iconType === 'diamond') {
+					return `<div style="width:${size};height:${size};background:white;border:2px solid #333;transform:rotate(45deg);box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>`;
+				} else {
+					return `<div style="width:${size};height:${size};background:white;border:2px solid #333;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>`;
+				}
+			};
+
 			currentViaData.forEach((p, idx) => {
 				const dm = L.marker([p.lat, p.lon], {
 					draggable: true,
 					icon: L.divIcon({
 						className: 'via-point',
-						html: `<div class="w-3.5 h-3.5 bg-white border-2 border-slate-700 rounded-full shadow-sm hover:scale-125 transition-transform cursor-grab"></div>`,
-						iconSize: [14, 14],
-						iconAnchor: [7, 7]
+						html: getWaypointHtml(),
+						iconSize: [waypointSize, waypointSize],
+						iconAnchor: [waypointSize / 2, waypointSize / 2]
 					})
 				}).addTo(map);
 
@@ -277,18 +336,41 @@ export function updateRouteStyles(state) {
 		}
 
 		if (artisticMap) {
-			if (artisticViaMarkers.length !== currentViaData.length) {
+			const currentIcon = state.routeWaypointIcon || 'circle';
+			const currentSize = state.routeWaypointSize || 1;
+
+			if (artisticViaMarkers.length !== currentViaData.length || window.__routeForceRecreate || lastWaypointIcon !== currentIcon || lastWaypointSize !== currentSize) {
 				artisticViaMarkers.forEach(m => m.remove());
+
+				const waypointSize = currentSize * 36;
+				const iconType = currentIcon;
+
+				const getWaypointHtml = () => {
+					const size = `${waypointSize}px`;
+
+					if (iconType === 'pin') {
+						return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" fill="white" stroke="#333" stroke-width="1.5"/>
+							<circle cx="12" cy="9" r="3" fill="#333"/>
+						</svg>`;
+					} else if (iconType === 'square') {
+						return `<div style="width:${size};height:${size};background:white;border:2px solid #333;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>`;
+					} else if (iconType === 'diamond') {
+						return `<div style="width:${size};height:${size};background:white;border:2px solid #333;transform:rotate(45deg);box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>`;
+					} else {
+						return `<div style="width:${size};height:${size};background:white;border:2px solid #333;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div>`;
+					}
+				};
+
 				artisticViaMarkers = currentViaData.map((p, idx) => {
 					const el = document.createElement('div');
 					el.className = 'artistic-via-point';
-					el.style.width = '24px';
-					el.style.height = '24px';
 					el.style.display = 'flex';
 					el.style.alignItems = 'center';
 					el.style.justifyContent = 'center';
 					el.style.zIndex = '990';
-					el.innerHTML = `<div style="width: 12px; height: 12px; background: white; border: 2px solid #333; border-radius: 50%; box-shadow: 0 0 4px rgba(0,0,0,0.4); cursor: grab;"></div>`;
+					el.style.cursor = 'grab';
+					el.innerHTML = getWaypointHtml();
 
 					const am = new maplibregl.Marker({ element: el, draggable: true })
 						.setLngLat([p.lon, p.lat])
@@ -329,16 +411,16 @@ export function updateRouteStyles(state) {
 		}
 
 		if (artisticMap) {
-			if (!artisticRouteStartMarker) {
+			if (!artisticRouteStartMarker || shouldRecreateStartEnd) {
+				if (artisticRouteStartMarker) artisticRouteStartMarker.remove();
+
 				const el = document.createElement('div');
 				el.className = 'route-marker-a';
-				el.style.width = '24px';
-				el.style.height = '24px';
 				el.style.display = 'flex';
 				el.style.alignItems = 'center';
 				el.style.justifyContent = 'center';
 				el.style.zIndex = '1000';
-				el.innerHTML = routeMarkerHtml('A');
+				el.innerHTML = getStartEndMarkerHtml('A');
 				artisticRouteStartMarker = new maplibregl.Marker({ element: el, draggable: true }).setLngLat([start[1], start[0]]).addTo(artisticMap);
 				artisticRouteStartMarker.on('drag', () => {
 					if (isSyncing) return;
@@ -353,16 +435,16 @@ export function updateRouteStyles(state) {
 				if (!isSyncing) artisticRouteStartMarker.setLngLat([start[1], start[0]]).addTo(artisticMap);
 			}
 
-			if (!artisticRouteEndMarker) {
+			if (!artisticRouteEndMarker || shouldRecreateStartEnd) {
+				if (artisticRouteEndMarker) artisticRouteEndMarker.remove();
+
 				const el = document.createElement('div');
 				el.className = 'route-marker-b';
-				el.style.width = '24px';
-				el.style.height = '24px';
 				el.style.display = 'flex';
 				el.style.alignItems = 'center';
 				el.style.justifyContent = 'center';
 				el.style.zIndex = '1000';
-				el.innerHTML = routeMarkerHtml('B');
+				el.innerHTML = getStartEndMarkerHtml('B');
 				artisticRouteEndMarker = new maplibregl.Marker({ element: el, draggable: true }).setLngLat([end[1], end[0]]).addTo(artisticMap);
 				artisticRouteEndMarker.on('drag', () => {
 					if (isSyncing) return;
@@ -417,6 +499,11 @@ export function updateRouteStyles(state) {
 		artisticViaMarkers = [];
 		if (artisticRouteStartMarker) { artisticRouteStartMarker.remove(); artisticRouteStartMarker = null; }
 		if (artisticRouteEndMarker) { artisticRouteEndMarker.remove(); artisticRouteEndMarker = null; }
+		lastWaypointIcon = null;
+		lastWaypointSize = null;
+		lastStartEndIcon = null;
+		lastStartEndSize = null;
+		window.__routeForceRecreate = false;
 		if (artisticMap) {
 			if (artisticMap.getLayer('route-line')) artisticMap.setLayoutProperty('route-line', 'visibility', 'none');
 			if (artisticMap.getLayer('route-line-casing')) artisticMap.setLayoutProperty('route-line-casing', 'visibility', 'none');
