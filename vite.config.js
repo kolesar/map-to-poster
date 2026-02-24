@@ -2,8 +2,10 @@ import { defineConfig } from 'vite';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 export default defineConfig({
-	plugins: [],
+	plugins: [cloudflare()],
 	esbuild: {
 		target: 'esnext',
 	},
